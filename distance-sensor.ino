@@ -31,7 +31,7 @@ long getDistance()
     Serial.println("Out of range");
     distanceCm = -1;
   }
-  delay(1000);
+  delay(100);
 
   return distanceCm;
 }
