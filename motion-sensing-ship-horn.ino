@@ -46,7 +46,7 @@ void loop()
   distance = getDistance(); 
   buttonPressed = getButtonState();
   
-  if((distance > 10 && distance < 50) || buttonPressed)
+  if((distance > 10 && distance < 100) || buttonPressed)
   {
     Serial.println("In Range; play horn");
     playBoatHorn();
