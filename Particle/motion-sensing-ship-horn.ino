@@ -1,70 +1,160 @@
-// ------------
-// Blink an LED
-// ------------
+// These are the pins for the Distance sensor
+const int ECHO_PIN = D6;
+const int TRIG_PIN = D5;
 
-/*-------------
+// This is the pin for the Button
+const int BUTTON_PIN = D2;
 
-We've heavily commented this code for you. If you're a pro, feel free to ignore it.
+// These are the pins for the confrmation light
+const int LED1_PIN = D0;
+const int LED2_PIN = D7;
 
-Comments start with two slashes or are blocked off by a slash and a star.
-You can read them, but your device can't.
-It's like a secret message just for you.
+void setup()
+{
+  Serial.begin(9600);
 
-Every program based on Wiring (programming language used by Arduino, and Particle devices) has two essential parts:
-setup - runs once at the beginning of your program
-loop - runs continuously over and over
+  setupConfirmationLight();
 
-You'll see how we use these in a second.
+  setupDistanceSensor();
 
-This program will blink an led on and off every second.
-It blinks the D7 LED on your Particle device. If you have an LED wired to D0, it will blink that LED as well.
-
--------------*/
-
-
-// First, we're going to make some variables.
-// This is our "shorthand" that we'll use throughout the program:
-
-int led1 = D0; // Instead of writing D0 over and over again, we'll write led1
-// You'll need to wire an LED to this one to see it blink.
-
-int led2 = D7; // Instead of writing D7 over and over again, we'll write led2
-// This one is the little blue LED on your board. On the Photon it is next to D7, and on the Core it is next to the USB jack.
-
-// Having declared these variables, let's move on to the setup function.
-// The setup function is a standard part of any microcontroller program.
-// It runs only once when the device boots up or is reset.
-
-void setup() {
-
-  // We are going to tell our device that D0 and D7 (which we named led1 and led2 respectively) are going to be output
-  // (That means that we will be sending voltage to them, rather than monitoring voltage that comes from them)
-
-  // It's important you do this here, inside the setup() function rather than outside it or in the loop function.
-
-  pinMode(led1, OUTPUT);
-  pinMode(led2, OUTPUT);
-
+  setupButton();
 }
 
-// Next we have the loop function, the other essential part of a microcontroller program.
-// This routine gets repeated over and over, as quickly as possible and as many times as possible, after the setup function is called.
-// Note: Code that blocks for too long (like more than 5 seconds), can make weird things happen (like dropping the network connection).  The built-in delay function shown below safely interleaves required background activity, so arbitrarily long delays can safely be done if you need them.
+void loop()
+{
+  long distance = -1;
+  bool buttonPressed = false;
 
-void loop() {
-  // To blink the LED, first we'll turn it on...
-  digitalWrite(led1, HIGH);
-  digitalWrite(led2, HIGH);
+  distance = getDistance();
+  buttonPressed = getButtonState();
 
-  // We'll leave it on for 1 second...
-  delay(1000);
+  if((distance > 25 && distance < 75) || buttonPressed)
+  {
+    Serial.println("In Range; play horn");
+    playBoatHorn();
+  }
+}
 
-  // Then we'll turn it off...
-  digitalWrite(led1, LOW);
-  digitalWrite(led2, LOW);
+void StopAllExecution()
+{
+      while (true);  // Loop forever. Don't do anything more
+}
 
-  // Wait 1 second...
-  delay(1000);
+void setupConfirmationLight()
+{
+  // initialize the confirmation light
+  pinMode(LED1_PIN, OUTPUT);
+  pinMode(LED2_PIN, OUTPUT);
+}
+void playBoatHorn()
+{
+  Serial.println(F("Started playing horn"));
+  flashConfirmationLight(3);
+  Serial.println("Done playing horn");
+}
+void flashConfirmationLight(int n)
+{
+  Serial.printlnf("Started flashing confirmation light %d time(s)", n);
+  for(int i=0; i<n; i++)
+  {
+    // To blink the LED, first we'll turn it on...
+    //digitalWrite(LED1_PIN, HIGH);
+    digitalWrite(LED2_PIN, HIGH);
 
-  // And repeat!
+    // We'll leave it on for 100 ms...
+    delay(100);
+
+    // Then we'll turn it off...
+    //digitalWrite(LED1_PIN, LOW);
+    digitalWrite(LED2_PIN, LOW);
+
+  }
+}
+
+void setupButton()
+{
+  Serial.println("Setup Button: Begin");
+
+  // initialize the pushbutton pin as an input:
+  pinMode(BUTTON_PIN, INPUT);
+
+  Serial.println("Setup Button: Complete");
+}
+
+bool getButtonState()
+{
+  bool buttonState = false;
+
+  // read the state of the pushbutton value:
+  buttonState = digitalRead(BUTTON_PIN);
+
+  Serial.print("Button state: ");
+  Serial.println(buttonState);
+
+  if (buttonState)
+  {
+    flashConfirmationLight(2);
+  }
+  return buttonState;
+}
+
+void setupDistanceSensor()
+{
+  Serial.println("Setup Distance Sesnor: Begin");
+  pinMode(TRIG_PIN, OUTPUT);
+  //digitalWriteFast(TRIG_PIN, LOW);
+  pinMode(ECHO_PIN, INPUT);
+  delay(50);
+  Serial.println("Setup Distance Sesnor: Complete");
+}
+
+long getDistance()
+{
+  long duration, distanceCm;
+
+  // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+  duration = pulseIn(ECHO_PIN,HIGH);
+
+  // convert the time into a distance
+  distanceCm = duration / 29.1 / 2 ;
+
+  if (distanceCm > 0){
+    Serial.print(distanceCm);
+    Serial.print("cm");
+    Serial.println();
+
+    flashConfirmationLight(1);
+  }
+  else {
+    Serial.println("Out of range");
+    distanceCm = -1;
+  }
+  delay(100);
+
+  return distanceCm;
+}
+
+void getDistancev2(uint32_t wait, bool info)
+{
+    uint32_t duration, inches, cm;
+
+    /* Trigger the sensor by sending a HIGH pulse of 10 or more microseconds */
+    digitalWriteFast(TRIG_PIN, HIGH);
+    delayMicroseconds(10);
+    digitalWriteFast(TRIG_PIN, LOW);
+
+    duration = pulseIn(ECHO_PIN, HIGH);
+
+    inches = duration / 74 / 2;
+    cm = duration / 29 / 2;
+
+
+    Serial.printlnf("%6d in / %6d cm / %6d us", inches, cm, duration);
+
+    delay(wait); // slow down the output
 }
